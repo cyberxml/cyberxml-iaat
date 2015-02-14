@@ -145,6 +145,7 @@ class MyFrame(wx.Frame):
                 # Tool Bar - Most functions moved to toolbar
         self.myframe_toolbar = wx.ToolBar(self, -1)
         self.SetToolBar(self.myframe_toolbar)
+        self.myframe_toolbar.AddSeparator()
         self.myframe_toolbar.AddLabelTool(1, "Open File",
              wx.Bitmap(os.path.expanduser('./document_text_16.png'), wx.BITMAP_TYPE_ANY),
              wx.NullBitmap, wx.ITEM_NORMAL, "Open XML File", "Open XML Flatfile")
@@ -205,7 +206,7 @@ class MyFrame(wx.Frame):
         self.SetStatusText(inputfile)
         self.searchdiag.ShowCancelButton(True)    
         self.searchdiag.SetDescriptiveText('Enter search..')
-        self.SetTitle("Underworld XML Viewer")
+        self.SetTitle("CyberXML IAVM Applicability Analysis Tool")
         #self.SetMinSize((1200, 750))
         self.vistree.SetBackgroundColour(wx.Colour(216, 216, 191))
         self.stc.SetCodePage(wx.stc.STC_CP_UTF8 )## *********** Remove for MSWin machines!****************##
@@ -502,21 +503,27 @@ class MyFrame(wx.Frame):
 
                     lnum=node.sourceline-offset
                     try: 
-                        name_attr = node.attrib['name'] # "name=" attribute exists
+                        name_attr = node.attrib['id'] # "name=" attribute exists
+                        #name_attr = node.attrib['name'] # "name=" attribute exists
 
                         try:
-                            mrg_type=node.attrib['mergeType']     
+                            mrg_type=node.attrib['id']     
+                            #mrg_type=node.attrib['mergeType']     
 
                             
                             try: #name='' + type='struct' + mergeType=''
-                                type_attr = node.attrib['type']
-                                if node.attrib['type']=='struct': #type='struct' + name='' + mergeType=''
-                                    newroot=self.vistree.AppendItem(parentnodeID, name_attr + ' = ' + node.attrib['mergeType'])
+                                #type_attr = node.attrib['type']
+                                id_attr = node.attrib['id']
+                                #if node.attrib['type']=='struct': #type='struct' + name='' + mergeType=''
+                                if node.attrib['id']: #type='struct' + name='' + mergeType=''
+                                    #newroot=self.vistree.AppendItem(parentnodeID, id_attr + ' = ' + node.attrib['mergeType'])
+                                    newroot=self.vistree.AppendItem(parentnodeID, id_attr)
                                     self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum})
                                     #self.vistree.SetItemTextColour(newroot, 'yellow')
                                     
                                 else: #type='' + name='' + mergeType=''
-                                    newroot=self.vistree.AppendItem(parentnodeID, name_attr + ' = ' + node.attrib['mergeType'] )
+                                    #newroot=self.vistree.AppendItem(parentnodeID, id_attr + ' = ' + node.attrib['mergeType'] )
+                                    newroot=self.vistree.AppendItem(parentnodeID, id_attr)
                                     self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum}) 
                                     #self.vistree.SetItemTextColour(newroot, 'green')
                                     
