@@ -141,22 +141,32 @@ class MyXmlPanel(wx.Panel):
 	def __init__(self,parent,xmlfile,validtags):
 		wx.Panel.__init__(self,parent)
 		
-		self.mgr = wx.aui.AuiManager(self)
+		#self.mgr = wx.aui.AuiManager(self)
 
 		#leftpanel = wx.Panel(self, -1)
 		#rightpanel = wx.Panel(self, -1)
 		#bottompanel = wx.Panel(self, -1)
 		
-		self.stc = wx.stc.StyledTextCtrl(self, size=(500,700))
-		self.vistree = wx.TreeCtrl(self, -1, size=(400, 700), style=wx.TR_HAS_BUTTONS|wx.TR_LINES_AT_ROOT|wx.TR_FULL_ROW_HIGHLIGHT|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
+		splitter = wx.SplitterWindow(self)
+		leftP = wx.Panel(splitter,-1)
+		rightP = wx.Panel(splitter,-1)
+		
+		self.stc = wx.stc.StyledTextCtrl(rightP, size=(500,700))
+		self.vistree = wx.TreeCtrl(leftP, -1, size=(400, 700), style=wx.TR_HAS_BUTTONS|wx.TR_LINES_AT_ROOT|wx.TR_FULL_ROW_HIGHLIGHT|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
 		self.stc.SetMarginType(1, stc.STC_MARGIN_NUMBER)
 		self.stc.SetMarginWidth(1,30)
 		
 		#self.mgr.AddPane(bottompanel, wx.aui.AuiPaneInfo().Bottom(), 'Information Pane')
-		self.mgr.AddPane(self.vistree, wx.aui.AuiPaneInfo().Left().Layer(0),'Tree Navigator')
-		self.mgr.AddPane(self.stc, wx.aui.AuiPaneInfo().Center().Layer(1), 'Editor Pane')		 
+		#self.mgr.AddPane(self.vistree, wx.aui.AuiPaneInfo().Left().Layer(0),'Tree Navigator')
+		#self.mgr.AddPane(self.stc, wx.aui.AuiPaneInfo().Center().Layer(1), 'Editor Pane')		 
 		
-		self.mgr.Update()
+		#self.mgr.Update()
+		splitter.SplitVertically(leftP, rightP)
+		splitter.SetMinimumPaneSize(200)
+ 
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		sizer.Add(splitter, 1, wx.EXPAND)
+		self.SetSizer(sizer)		
 		
 		self.__set_properties(xmlfile) 
 		
