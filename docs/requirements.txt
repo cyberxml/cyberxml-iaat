@@ -1,0 +1,24 @@
+Your executable(s) also depend on these dlls which are not included,
+you may or may not need to distribute them.
+
+Make sure you have the license if you distribute any of them, and
+make sure you don't distribute files belonging to the operating system.
+
+  ole32.dll - C:\windows\system32\ole32.dll
+  OLEAUT32.dll - C:\windows\system32\OLEAUT32.dll
+  USER32.dll - C:\windows\system32\USER32.dll
+  SHELL32.dll - C:\windows\system32\SHELL32.dll
+  MSVCP90.dll - C:\windows\system32\MSVCP90.dll
+  COMDLG32.dll - C:\windows\system32\COMDLG32.dll
+  WSOCK32.dll - C:\windows\system32\WSOCK32.dll
+  COMCTL32.dll - C:\windows\system32\COMCTL32.dll
+  ADVAPI32.dll - C:\windows\system32\ADVAPI32.dll
+  msvcrt.dll - C:\windows\system32\msvcrt.dll
+  WS2_32.dll - C:\windows\system32\WS2_32.dll
+  WINSPOOL.DRV - C:\windows\system32\WINSPOOL.DRV
+  GDI32.dll - C:\windows\system32\GDI32.dll
+  WINMM.dll - C:\windows\system32\WINMM.dll
+  VERSION.dll - C:\windows\system32\VERSION.dll
+  KERNEL32.dll - C:\windows\system32\KERNEL32.dll
+  ntdll.dll - C:\windows\system32\ntdll.dll
+  RPCRT4.dll - C:\windows\system32\RPCRT4.dll
