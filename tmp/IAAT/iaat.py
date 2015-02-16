@@ -63,24 +63,15 @@ def strip_namespace(eltree, namespace=None,remove_from_attr=True):
 
 class TestNB(wx.Notebook):
 	def __init__(self, parent, id, log):
-		wx.Notebook.__init__(self, parent, id, size=(21,21), style=
-							 wx.BK_DEFAULT
-							 #wx.BK_TOP 
-							 #wx.BK_BOTTOM
-							 #wx.BK_LEFT
-							 #wx.BK_RIGHT
-							 # | wx.NB_MULTILINE
-							 )
+		wx.Notebook.__init__(self, parent, id, size=(21,21), style=wx.BK_DEFAULT)
 		self.log = log
 
 		self.home= HomePanel(self)
 		self.AddPage(self.home, "Home")
 
-		#self.page1= MyXmlPanel(self,"u_iavm-to-cve.xml", iavm_validtags)
 		self.iavm= MyXmlPanel(self,"", iavm_validtags)
 		self.AddPage(self.iavm, "IAVM")
 
-		#self.page2= MyXmlPanel(self,"ai-swcat-generic.xml", swcat_validtags)
 		self.swcat= MyXmlPanel(self,"", swcat_validtags)
 		self.AddPage(self.swcat, "SWCAT")
 
@@ -92,17 +83,6 @@ class TestNB(wx.Notebook):
 
 		self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
 		self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
-
-
-	def makeColorPanel(self, color):
-		p = wx.Panel(self, -1)
-		win = wx.Panel(p, -1)
-		p.win = win
-		def OnCPSize(evt, win=win):
-			win.SetPosition((0,0))
-			win.SetSize(evt.GetSize())
-		p.Bind(wx.EVT_SIZE, OnCPSize)
-		return p
 
 	def OnPageChanged(self, event):
 		old = event.GetOldSelection()
@@ -124,16 +104,7 @@ class TestNB(wx.Notebook):
 		if dlg.ShowModal() == wx.ID_OK:
 			filename = dlg.GetFilename()
 			dirname = dlg.GetDirectory()
-			#xml_file=open(os.path.join(self.dirname, self.filename), 'r')
 			print os.path.join(dirname, filename)
-			#newtree = etree.parse(xml_file)
-			#new_namespace = newtree.getroot().tag[1:].split("}")[0]
-			#strip_namespace(newtree,new_namespace,True)   
-			#newroot=newtree.getroot()
-			#self.vistree.DeleteAllItems()		
-			#frame.loadtree(newtree)
-			#self.expandbutton.SetValue(False) 
-			#self.SetStatusText(os.path.join(self.dirname, self.filename))
 		dlg.Destroy()
 		if mode=="iavm":
 			self.iavm.loadfile(os.path.join(dirname, filename))
@@ -141,7 +112,39 @@ class TestNB(wx.Notebook):
 		elif mode=="swcat":
 			self.swcat.loadfile(os.path.join(dirname, filename))
 			self.swcat.set_properties(os.path.join(dirname, filename))
+	
+	def update_dashboard(self, event): # wxGlade: MyFrame.<event_handler>
+		# need iavm_tree and swcat_tree
+		# for each cpe in each iavm in iavm_tree
+		#     is there a match with any cpe in each asset in swcat_tree
+		#         if yes, then place a mark in the iavm/asset cell
+		iavm_tree = self.iavm.tree
+		swcat_tree = self.swcat.tree
+		print iavm_tree.getroot().tag
+		print swcat_tree.getroot().tag
+		iavm_root=iavm_tree.getroot()
+		swcat_root=swcat_tree.getroot()
 		
+		iavms=iavm_root.findall('IAVM')
+		assets=swcat_root.findall('ai')
+		
+		iavass=[] # holds row, col pairs of matches
+		for i in range(len(iavms)):
+			iavcpes=iavms[i].findall(".//CPE")
+			iavcpetxt=[]
+			for iav in iavcpes:
+				iavcpetxt.append(iav.text)
+			for j in range(len(assets)):
+				asscpes=assets[j].findall('./Software/CPE')
+				asscpetxt=[]
+				for ass in asscpes:
+					asscpetxt.append(ass.text)
+				for c in iavcpetxt:
+					if c in asscpetxt:
+						iavass.append([i,j])
+
+		self.dash.updateGrid(iavass)
+
 #----------------------------------------------------------------------------
 
 def runTest(frame, nb, log):
@@ -153,24 +156,20 @@ def runTest(frame, nb, log):
 class HomePanel(wx.Panel):
 	def __init__(self,parent):
 		wx.Panel.__init__(self,parent)
-		#pnl=wx.Panel(self)
-		#pnl.SetBackgroundColour(wx.Colour(216, 216, 191))
 		self.SetBackgroundColour(wx.Colour(216, 216, 191))
 		self.parent = parent
-		#sizer1= wx.BoxSizer(wx.VERTICAL)
-		#sizer2= wx.BoxSizer(wx.VERTICAL)
-		#btn_iavm = wx.Button(self, label='Import IAVM-to-CPE', pos=(20,30))
+
 		btn_iavm = wx.Button(self, 10, "Import IAVM-to-CPE", (20, 30))
 		self.Bind(wx.EVT_BUTTON, lambda event: parent.openfilemenu(event, 'iavm'),btn_iavm )
+
 		btn_swcat = wx.Button(self, 20, "Import Software Catalog", (20, 70))
 		self.Bind(wx.EVT_BUTTON, lambda event: parent.openfilemenu(event, 'swcat'),btn_swcat )
-		#btn_swcat = wx.Button(self, label='Import Software Catalog', pos=(20,70))
-		#btn_swcat.Bind(wx.EVT_BUTTON, parent.openfilemenu)
-		#sizer2.Add(btn_iavm,1,wx.ALIGN_CENTRE)
-		#sizer2.Add(btn_swcat,2,wx.ALIGN_CENTRE)
-		#sizer1.Add(pnl,1,wx.ALIGN_CENTRE)
-		#pnl.SetSizer(sizer2)
-		#self.SetSizer(sizer1)
+
+		btn_dash_update = wx.Button(self, 30, "Update Dashboard", (20, 110))
+		self.Bind(wx.EVT_BUTTON, lambda event: parent.update_dashboard(event),btn_dash_update )
+
+		btn_dash_export = wx.Button(self, 40, "Export Dashboard", (20, 150))
+		self.Bind(wx.EVT_BUTTON, lambda event: parent.openfilemenu(event),btn_dash_export )
 
 class MyXmlPanel(wx.Panel):
 	def __init__(self,parent,xmlfile,vtags):
@@ -411,15 +410,15 @@ class MyXmlPanel(wx.Panel):
 		#tree = etree.parse(open(xmlfilename,'r'))
 		#namespace = tree.getroot().tag[1:].split("}")[0]
 		#strip_namespace(tree,namespace, True)
-		newtree = etree.parse(open(xmlfilename,'r'))
-		namespace = newtree.getroot().tag[1:].split("}")[0]
-		strip_namespace(newtree,namespace,True)	  
+		self.tree = etree.parse(open(xmlfilename,'r'))
+		namespace = self.tree.getroot().tag[1:].split("}")[0]
+		strip_namespace(self.tree,namespace,True)	  
 		#newroot=newtree.getroot()
 		self.vistree.DeleteAllItems()	   
-		self.loadtree(newtree)
+		self.loadtree(self.tree)
 		#self.expandbutton.SetValue(False) 
 		#self.SetStatusText(os.path.join(self.dirname, self.filename))
-		self.updateDashboard(newtree)
+		self.updateDashboard(self.tree)
 
 	def loadtree(self,roottree):
 		#Populate tree structure with XML children
@@ -575,6 +574,10 @@ class dashGrid(wx.grid.Grid):
 		for i in range(len(assets)):
 			self.SetColLabelValue(i, assets[i])
 
+	def updateGrid(self,mycells):
+		self.ClearGrid()
+		for mc in mycells:
+			self.SetCellValue(mc[0], mc[1], "X")
 
 class poamGrid(wx.grid.Grid):
 	def __init__(self, parent):
