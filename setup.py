@@ -6,7 +6,7 @@ setup(
 	console=['iaat.py'],
 	data_files=[
 		("icons",glob.glob("icons/*.png")),
-		("xmlfiles",glob.glob("docs/*.xml")),
+		("docs",glob.glob("docs/*.xml")),
 	],
 )
 
