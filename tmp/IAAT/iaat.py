@@ -72,25 +72,19 @@ class TestNB(wx.Notebook):
 							 )
 		self.log = log
 
-		win = self.makeColorPanel(wx.BLUE)
-		self.AddPage(win, "Home")
-		st = wx.StaticText(win.win, -1,
-						  "You can put nearly any type of window here,\n"
-						  "and if the platform supports it then the\n"
-						  "tabs can be on any side of the notebook.",
-						  (10, 10))
+		page0= HomePanel(self)
+		self.AddPage(page0, "Home")
 
-		st.SetForegroundColour(wx.WHITE)
-		st.SetBackgroundColour(wx.BLUE)
-		
-		page1= MyXmlPanel(self,"u_iavm-to-cve.xml", iavm_validtags)
-		self.AddPage(page1, "IAVM")
+		#self.page1= MyXmlPanel(self,"u_iavm-to-cve.xml", iavm_validtags)
+		self.page1= MyXmlPanel(self,"", iavm_validtags)
+		self.AddPage(self.page1, "IAVM")
 
-		page1= MyXmlPanel(self,"ai-swcat-generic.xml", swcat_validtags)
-		self.AddPage(page1, "SWCAT")
+		#self.page2= MyXmlPanel(self,"ai-swcat-generic.xml", swcat_validtags)
+		self.page2= MyXmlPanel(self,"", swcat_validtags)
+		self.AddPage(self.page2, "SWCAT")
 
-		win = self.makeColorPanel(wx.CYAN)
-		self.AddPage(win, "POAM")
+		#win = self.makeColorPanel(wx.CYAN)
+		#self.AddPage(win, "POAM")
 
 		self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
 		self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -106,7 +100,6 @@ class TestNB(wx.Notebook):
 		p.Bind(wx.EVT_SIZE, OnCPSize)
 		return p
 
-
 	def OnPageChanged(self, event):
 		old = event.GetOldSelection()
 		new = event.GetSelection()
@@ -121,7 +114,30 @@ class TestNB(wx.Notebook):
 		self.log.write('OnPageChanging, old:%d, new:%d, sel:%d\n' % (old, new, sel))
 		event.Skip()
 
-
+	def openfilemenu(self, event, mode): # wxGlade: MyFrame.<event_handler>
+		""" Open a file"""
+		dlg = wx.FileDialog(self, "Choose an XML file", "", "", "*.xml", wx.OPEN)
+		if dlg.ShowModal() == wx.ID_OK:
+			filename = dlg.GetFilename()
+			dirname = dlg.GetDirectory()
+			#xml_file=open(os.path.join(self.dirname, self.filename), 'r')
+			print os.path.join(dirname, filename)
+			#newtree = etree.parse(xml_file)
+			#new_namespace = newtree.getroot().tag[1:].split("}")[0]
+			#strip_namespace(newtree,new_namespace,True)   
+			#newroot=newtree.getroot()
+			#self.vistree.DeleteAllItems()      
+			#frame.loadtree(newtree)
+			#self.expandbutton.SetValue(False) 
+			#self.SetStatusText(os.path.join(self.dirname, self.filename))
+		dlg.Destroy()
+		if mode=="iavm":
+			self.page1.loadfile(os.path.join(dirname, filename))
+			self.page1.set_properties(os.path.join(dirname, filename))
+		elif mode=="swcat":
+			self.page2.loadfile(os.path.join(dirname, filename))
+			self.page2.set_properties(os.path.join(dirname, filename))
+		
 #----------------------------------------------------------------------------
 
 def runTest(frame, nb, log):
@@ -129,24 +145,33 @@ def runTest(frame, nb, log):
 	return testWin
 
 #----------------------------------------------------------------------------
-class NoteBookPage(wx.Panel):
-	def __init__(self,parent,message):
+
+class HomePanel(wx.Panel):
+	def __init__(self,parent):
 		wx.Panel.__init__(self,parent)
-		sizer= wx.BoxSizer(wx.VERTICAL)
-		message= wx.StaticText(self,label=message)
-		sizer.Add(message,1,wx.ALIGN_CENTRE)
-		self.SetSizer(sizer)
+		#pnl=wx.Panel(self)
+		#pnl.SetBackgroundColour(wx.Colour(216, 216, 191))
+		self.SetBackgroundColour(wx.Colour(216, 216, 191))
+		#sizer1= wx.BoxSizer(wx.VERTICAL)
+		#sizer2= wx.BoxSizer(wx.VERTICAL)
+		#btn_iavm = wx.Button(self, label='Import IAVM-to-CPE', pos=(20,30))
+		btn_iavm = wx.Button(self, 10, "Import IAVM-to-CPE", (20, 30))
+		self.Bind(wx.EVT_BUTTON, lambda event: parent.openfilemenu(event, 'iavm'),btn_iavm )
+		btn_swcat = wx.Button(self, 20, "Import Software Catalog", (20, 70))
+		self.Bind(wx.EVT_BUTTON, lambda event: parent.openfilemenu(event, 'swcat'),btn_swcat )
+		#btn_swcat = wx.Button(self, label='Import Software Catalog', pos=(20,70))
+		#btn_swcat.Bind(wx.EVT_BUTTON, parent.openfilemenu)
+		#sizer2.Add(btn_iavm,1,wx.ALIGN_CENTRE)
+		#sizer2.Add(btn_swcat,2,wx.ALIGN_CENTRE)
+		#sizer1.Add(pnl,1,wx.ALIGN_CENTRE)
+		#pnl.SetSizer(sizer2)
+		#self.SetSizer(sizer1)
 
 class MyXmlPanel(wx.Panel):
-	def __init__(self,parent,xmlfile,validtags):
+	def __init__(self,parent,xmlfile,vtags):
 		wx.Panel.__init__(self,parent)
 		
-		#self.mgr = wx.aui.AuiManager(self)
-
-		#leftpanel = wx.Panel(self, -1)
-		#rightpanel = wx.Panel(self, -1)
-		#bottompanel = wx.Panel(self, -1)
-		
+		self.validtags = vtags
 		splitter = wx.SplitterWindow(self)
 		leftP = wx.Panel(splitter,-1)
 		rightP = wx.Panel(splitter,-1)
@@ -156,11 +181,6 @@ class MyXmlPanel(wx.Panel):
 		self.stc.SetMarginType(1, stc.STC_MARGIN_NUMBER)
 		self.stc.SetMarginWidth(1,30)
 		
-		#self.mgr.AddPane(bottompanel, wx.aui.AuiPaneInfo().Bottom(), 'Information Pane')
-		#self.mgr.AddPane(self.vistree, wx.aui.AuiPaneInfo().Left().Layer(0),'Tree Navigator')
-		#self.mgr.AddPane(self.stc, wx.aui.AuiPaneInfo().Center().Layer(1), 'Editor Pane')		 
-		
-		#self.mgr.Update()
 		splitter.SplitVertically(leftP, rightP)
 		splitter.SetMinimumPaneSize(200)
  
@@ -168,19 +188,11 @@ class MyXmlPanel(wx.Panel):
 		sizer.Add(splitter, 1, wx.EXPAND)
 		self.SetSizer(sizer)		
 		
-		self.__set_properties(xmlfile) 
+		#self.loadfile(xmlfile)
+		self.set_properties(xmlfile) 
 		
-		try:
-			print("parse: "+xmlfile)
-			tree = etree.parse(xmlfile)
-			namespace = tree.getroot().tag[1:].split("}")[0]
-			strip_namespace(tree,namespace, True)
-			self.loadtree(tree,validtags)
-		except:
-			print("failed to init tree")
-			pass
 	
-	def __set_properties(self, xmlfile):
+	def set_properties(self, xmlfile):
 		self.dirname=''
 		self.vistree.SetBackgroundColour(wx.Colour(216, 216, 191))
 		self.stc.SetCodePage(wx.stc.STC_CP_UTF8 )## *********** Remove for MSWin machines!****************##
@@ -369,8 +381,26 @@ class MyXmlPanel(wx.Panel):
 	def onexp(self,	 event):	
 			node=self.vistree.GetSelection()
 			self.vistree.Expand(node)		 
-	
-	def loadtree(self,roottree,validtags):
+			
+	def loadfile(self,xmlfilename):
+		print("parse: "+xmlfilename)
+		#tree = etree.parse(open(xmlfilename,'r'))
+		#namespace = tree.getroot().tag[1:].split("}")[0]
+		#strip_namespace(tree,namespace, True)
+		newtree = etree.parse(open(xmlfilename,'r'))
+		namespace = newtree.getroot().tag[1:].split("}")[0]
+		strip_namespace(newtree,namespace,True)   
+		newroot=newtree.getroot()
+		self.vistree.DeleteAllItems()      
+		self.loadtree(newtree)
+		#self.expandbutton.SetValue(False) 
+		#self.SetStatusText(os.path.join(self.dirname, self.filename))
+		try:
+			self.loadtree(tree)
+		except:
+			pass
+
+	def loadtree(self,roottree):
 		#Populate tree structure with XML children
 		rootn=roottree.getroot()
 		lnum=roottree.getroot().sourceline
@@ -391,12 +421,12 @@ class MyXmlPanel(wx.Panel):
 		print "node.tag 2.0: "+parentnode_txt
 		print "node.tag 2.1: "+str(rootnode)
 		print "node.tag 2.2: "+str(treedic[parentnode_txt])
-		print(validtags)
+		print(self.validtags)
 		
 		#for node in roottree.iter():		
 		for node in roottree.iter():		
 			#print "node.tag 1: "+node.tag			
-			if node.tag in validtags:
+			if node.tag in self.validtags:
 								
 				# STANDARD FILE PROCESS
 				#print "node.tag 2a: "+node.tag
@@ -457,7 +487,7 @@ class MyXmlPanel(wx.Panel):
 
 						else: 
 							content=node.text # name=' ' + content
-							name_attr=node.attrib['name']									
+							name_attr=node.attrib['name'] 									
 							newroot=self.vistree.AppendItem(parentnodeID, name_attr + "=" + content)
 							self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum})
 							self.vistree.SetItemTextColour(newroot, 'blue')										
@@ -489,7 +519,7 @@ class MyXmlPanel(wx.Panel):
 				#print "node.tag 2b: "+node.tag
 			#print "rootn.tag 3: "+rootn.tag
 			treedic[node]=newroot # append dictionary
-		StGernodeID,cookie=self.vistree.GetFirstChild(rootn) # Use StGermainData as parent node	 
+		#StGernodeID,cookie=self.vistree.GetFirstChild(rootn) # Use StGermainData as parent node	 
 		
 	#self.vistree.ExpandAll() # Default expand all of tree on load
 # END ------ loadtree -----------		
