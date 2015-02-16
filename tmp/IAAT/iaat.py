@@ -2,6 +2,7 @@
 import	sys
 import	wx
 import wx.aui
+import wx.grid
 import wx.stc as stc
 import io, re,os, wx.html
 from lxml import etree
@@ -72,19 +73,22 @@ class TestNB(wx.Notebook):
 							 )
 		self.log = log
 
-		page0= HomePanel(self)
-		self.AddPage(page0, "Home")
+		self.home= HomePanel(self)
+		self.AddPage(self.home, "Home")
 
 		#self.page1= MyXmlPanel(self,"u_iavm-to-cve.xml", iavm_validtags)
-		self.page1= MyXmlPanel(self,"", iavm_validtags)
-		self.AddPage(self.page1, "IAVM")
+		self.iavm= MyXmlPanel(self,"", iavm_validtags)
+		self.AddPage(self.iavm, "IAVM")
 
 		#self.page2= MyXmlPanel(self,"ai-swcat-generic.xml", swcat_validtags)
-		self.page2= MyXmlPanel(self,"", swcat_validtags)
-		self.AddPage(self.page2, "SWCAT")
+		self.swcat= MyXmlPanel(self,"", swcat_validtags)
+		self.AddPage(self.swcat, "SWCAT")
 
-		#win = self.makeColorPanel(wx.CYAN)
-		#self.AddPage(win, "POAM")
+		self.dash = dashGrid(self)
+		self.AddPage(self.dash, "DASH")
+
+		self.poam = poamGrid(self)
+		self.AddPage(self.poam, "POAM")
 
 		self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
 		self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnPageChanging)
@@ -126,17 +130,17 @@ class TestNB(wx.Notebook):
 			#new_namespace = newtree.getroot().tag[1:].split("}")[0]
 			#strip_namespace(newtree,new_namespace,True)   
 			#newroot=newtree.getroot()
-			#self.vistree.DeleteAllItems()      
+			#self.vistree.DeleteAllItems()		
 			#frame.loadtree(newtree)
 			#self.expandbutton.SetValue(False) 
 			#self.SetStatusText(os.path.join(self.dirname, self.filename))
 		dlg.Destroy()
 		if mode=="iavm":
-			self.page1.loadfile(os.path.join(dirname, filename))
-			self.page1.set_properties(os.path.join(dirname, filename))
+			self.iavm.loadfile(os.path.join(dirname, filename))
+			self.iavm.set_properties(os.path.join(dirname, filename))
 		elif mode=="swcat":
-			self.page2.loadfile(os.path.join(dirname, filename))
-			self.page2.set_properties(os.path.join(dirname, filename))
+			self.swcat.loadfile(os.path.join(dirname, filename))
+			self.swcat.set_properties(os.path.join(dirname, filename))
 		
 #----------------------------------------------------------------------------
 
@@ -152,6 +156,7 @@ class HomePanel(wx.Panel):
 		#pnl=wx.Panel(self)
 		#pnl.SetBackgroundColour(wx.Colour(216, 216, 191))
 		self.SetBackgroundColour(wx.Colour(216, 216, 191))
+		self.parent = parent
 		#sizer1= wx.BoxSizer(wx.VERTICAL)
 		#sizer2= wx.BoxSizer(wx.VERTICAL)
 		#btn_iavm = wx.Button(self, label='Import IAVM-to-CPE', pos=(20,30))
@@ -171,6 +176,8 @@ class MyXmlPanel(wx.Panel):
 	def __init__(self,parent,xmlfile,vtags):
 		wx.Panel.__init__(self,parent)
 		
+		self.parent = parent
+
 		self.validtags = vtags
 		splitter = wx.SplitterWindow(self)
 		leftP = wx.Panel(splitter,-1)
@@ -382,6 +389,23 @@ class MyXmlPanel(wx.Panel):
 			node=self.vistree.GetSelection()
 			self.vistree.Expand(node)		 
 			
+	def updateDashboard(self,newtree):
+		print "updateDashboard: entry"
+		if 'Asset' in self.validtags:
+			print "updateDashboard: asset"
+			ass = newtree.findall('//ai')
+			assets=[]
+			for a in ass:
+				assets.append(a.get('id'))
+			self.parent.dash.updateAssetLabels(assets)
+		elif 'IAVM' in self.validtags:
+			print "updateDashboard: iavm"
+			iavs = newtree.findall('//S')
+			iavms=[]
+			for i in iavs:
+				iavms.append(i.get('IAVM'))
+			self.parent.dash.updateIavmLabels(iavms)
+		
 	def loadfile(self,xmlfilename):
 		print("parse: "+xmlfilename)
 		#tree = etree.parse(open(xmlfilename,'r'))
@@ -389,16 +413,13 @@ class MyXmlPanel(wx.Panel):
 		#strip_namespace(tree,namespace, True)
 		newtree = etree.parse(open(xmlfilename,'r'))
 		namespace = newtree.getroot().tag[1:].split("}")[0]
-		strip_namespace(newtree,namespace,True)   
-		newroot=newtree.getroot()
-		self.vistree.DeleteAllItems()      
+		strip_namespace(newtree,namespace,True)	  
+		#newroot=newtree.getroot()
+		self.vistree.DeleteAllItems()	   
 		self.loadtree(newtree)
 		#self.expandbutton.SetValue(False) 
 		#self.SetStatusText(os.path.join(self.dirname, self.filename))
-		try:
-			self.loadtree(tree)
-		except:
-			pass
+		self.updateDashboard(newtree)
 
 	def loadtree(self,roottree):
 		#Populate tree structure with XML children
@@ -487,7 +508,7 @@ class MyXmlPanel(wx.Panel):
 
 						else: 
 							content=node.text # name=' ' + content
-							name_attr=node.attrib['name'] 									
+							name_attr=node.attrib['name']									
 							newroot=self.vistree.AppendItem(parentnodeID, name_attr + "=" + content)
 							self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum})
 							self.vistree.SetItemTextColour(newroot, 'blue')										
@@ -523,6 +544,69 @@ class MyXmlPanel(wx.Panel):
 		
 	#self.vistree.ExpandAll() # Default expand all of tree on load
 # END ------ loadtree -----------		
+
+class dashGrid(wx.grid.Grid):
+	def __init__(self, parent):
+		wx.grid.Grid.__init__(self,parent,size = (1500,1000))
+		self.parent = parent
+		self.SetDefaultCellOverflow(False)
+		self.EnableEditing(False)
+		#self.EnableDragGridSize(False)
+		#self.EnableDragRowSize(False)
+		#self.EnableDragColSize(False)
+		#self.grid = wx.grid.Grid(parent)
+		self.SetColLabelSize(100)
+		self.CreateGrid(3000,20)
+		self.SetColLabelAlignment(wx.ALIGN_LEFT, wx.ALIGN_CENTRE)
+		self.SetColLabelTextOrientation(wx.VERTICAL)
+		self.AutoSizeColumns(setAsMin=True)
+	
+	def updateIavmLabels(self,iavms):
+		print('updateIavmLabels')
+		for i in range(self.GetNumberRows()):
+			self.SetRowLabelValue(i,"")
+		for i in range(len(iavms)):
+			self.SetRowLabelValue(i, iavms[i])
+	
+	def updateAssetLabels(self,assets):
+		print('updateAssetLabels')
+		for i in range(self.GetNumberCols()):
+			self.SetColLabelValue(i,"")
+		for i in range(len(assets)):
+			self.SetColLabelValue(i, assets[i])
+
+
+class poamGrid(wx.grid.Grid):
+	def __init__(self, parent):
+		wx.grid.Grid.__init__(self,parent,size = (1500,1000))
+		self.SetDefaultCellOverflow(False)
+		self.EnableEditing(False)
+		self.EnableDragGridSize(False)
+		self.EnableDragRowSize(False)
+		self.EnableDragColSize(False)
+		#self.grid = wx.grid.Grid(parent)
+		self.CreateGrid(20, 12)
+		self.SetColLabelValue(0, "ID")
+		self.SetColSize(0, 200)
+		self.SetColLabelValue(1, "Weakness")
+		self.SetColLabelValue(2, "POC")
+		self.SetColLabelValue(3, "Resources Required")
+		self.SetColLabelValue(4, "Scheduled Completion Date")
+		self.SetColSize(4, 110)
+		self.SetColLabelValue(5, "Milestones with Completion Date")
+		self.SetColSize(5, 110)
+		self.SetColLabelValue(6, "Changes to Milestones")
+		self.SetColLabelValue(7, "Identified by?")
+		self.SetColLabelValue(8, "Completion Date")
+		self.SetColSize(8, 125)
+		self.SetColLabelValue(9, "Status")
+		self.SetColSize(9, 165)
+		self.SetColLabelValue(10, "Comments")
+		self.SetColSize(10, 200)
+		self.SetColLabelValue(11, "Risk Level")
+		self.SetColSize(11, 200)
+		self.SetColLabelValue(12, "Weakness Severity")
+		#self.AutoSizeColumns(setAsMin=True)
 
 
 overview = """\
