@@ -6,6 +6,7 @@ import wx.grid
 import wx.stc as stc
 import io, re,os, wx.html
 from lxml import etree
+import xlwt
 
 #----------------------------------------------------------------------------
 
@@ -69,10 +70,12 @@ class TestNB(wx.Notebook):
 		self.home= HomePanel(self)
 		self.AddPage(self.home, "Home")
 
-		self.iavm= MyXmlPanel(self,"", iavm_validtags)
+		#self.iavm= MyXmlPanel(self,"", iavm_validtags)
+		self.iavm= MyXmlPanel(self,"u_iavm-to-cpe.xml", iavm_validtags)
 		self.AddPage(self.iavm, "IAVM")
 
-		self.swcat= MyXmlPanel(self,"", swcat_validtags)
+		#self.swcat= MyXmlPanel(self,"", swcat_validtags)
+		self.swcat= MyXmlPanel(self,"ai-swcat-generic.xml", swcat_validtags)
 		self.AddPage(self.swcat, "SWCAT")
 
 		self.dash = dashGrid(self)
@@ -143,7 +146,10 @@ class TestNB(wx.Notebook):
 					if c in asscpetxt:
 						iavass.append([i,j])
 
-		self.dash.updateGrid(iavass)
+		self.dash.updateDashboard(iavass)
+
+	def export_dashboard(self, event): # wxGlade: MyFrame.<event_handler>
+		self.dash.exportDashboard("dashboard.xls")
 
 #----------------------------------------------------------------------------
 
@@ -169,7 +175,7 @@ class HomePanel(wx.Panel):
 		self.Bind(wx.EVT_BUTTON, lambda event: parent.update_dashboard(event),btn_dash_update )
 
 		btn_dash_export = wx.Button(self, 40, "Export Dashboard", (20, 150))
-		self.Bind(wx.EVT_BUTTON, lambda event: parent.openfilemenu(event),btn_dash_export )
+		self.Bind(wx.EVT_BUTTON, lambda event: parent.export_dashboard(event),btn_dash_export )
 
 class MyXmlPanel(wx.Panel):
 	def __init__(self,parent,xmlfile,vtags):
@@ -574,10 +580,24 @@ class dashGrid(wx.grid.Grid):
 		for i in range(len(assets)):
 			self.SetColLabelValue(i, assets[i])
 
-	def updateGrid(self,mycells):
+	def updateDashboard(self,mycells):
 		self.ClearGrid()
 		for mc in mycells:
 			self.SetCellValue(mc[0], mc[1], "X")
+
+	def exportDashboard(self,filename):
+		book = xlwt.Workbook()
+		dash = book.add_sheet('IAVM Dashboard')
+		for r in range(self.GetNumberRows()):
+			for c in range(self.GetNumberCols()):
+				dash.write(r+1,c+1,self.GetCellValue(r,c))
+		# row labels
+		for r in range(self.GetNumberRows()):
+				dash.write(r+1,0,self.GetRowLabelValue(r))		
+		for c in range(self.GetNumberCols()):
+				dash.write(0,c+1,self.GetColLabelValue(c))		
+		book.save(filename)
+		print("exportDashboard: "+filename)
 
 class poamGrid(wx.grid.Grid):
 	def __init__(self, parent):
@@ -625,9 +645,141 @@ delete the window for a page that is currently managed by wx.Notebook.
 
 """
 
-
+'''
 if __name__ == '__main__':
 	import sys,os
 	import run
 	run.main(['', os.path.basename(sys.argv[0])] + sys.argv[1:])
+'''
+#----------------------------------------------------------------------------
+# a bunch of crap inherited from the demo framework which needs pruning
+#----------------------------------------------------------------------------
+import wx.lib.inspection
+import wx.lib.mixins.inspection
 
+class Log:
+	def WriteText(self, text):
+		if text[-1:] == '\n':
+			text = text[:-1]
+		wx.LogMessage(text)
+	write = WriteText
+
+
+class RunDemoApp(wx.App, wx.lib.mixins.inspection.InspectionMixin):
+	#def __init__(self, name, module, useShell):
+	def __init__(self, name, useShell):
+		self.name = name
+		#self.demoModule = module
+		self.useShell = useShell
+		wx.App.__init__(self, redirect=False)
+
+	def OnInit(self):
+		wx.Log.SetActiveTarget(wx.LogStderr())
+
+		#self.SetAssertMode(assertMode)
+		self.InitInspection()  # for the InspectionMixin base class
+
+		frame = wx.Frame(None, -1, "RunDemo: " + self.name, pos=(50,50), size=(200,100),
+						style=wx.DEFAULT_FRAME_STYLE, name="run a sample")
+		frame.CreateStatusBar()
+
+		menuBar = wx.MenuBar()
+		menu = wx.Menu()
+		item = menu.Append(-1, "&Widget Inspector\tF6", "Show the wxPython Widget Inspection Tool")
+		self.Bind(wx.EVT_MENU, self.OnWidgetInspector, item)
+		item = menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit demo")
+		self.Bind(wx.EVT_MENU, self.OnExitApp, item)
+		menuBar.Append(menu, "&File")
+
+		# ----------- start toolbar --------------
+		# Toolbar events
+		#self.Bind(wx.EVT_TOOL, self.openfilemenu, id=1)
+		
+		# Tool Bar - Most functions moved to toolbar
+		toolbar = frame.CreateToolBar()
+		qtool = toolbar.AddLabelTool(wx.ID_ANY, 'Exit', wx.Bitmap('icons/logout_16.png'))
+		toolbar.Realize()
+		self.Bind(wx.EVT_TOOL, self.OnExitApp, qtool)
+
+		# ----------- end toolbar --------------
+
+		ns = {}
+		ns['wx'] = wx
+		ns['app'] = self
+		#ns['module'] = self.demoModule
+		ns['frame'] = frame
+		
+		frame.SetMenuBar(menuBar)
+		frame.Show(True)
+		frame.Bind(wx.EVT_CLOSE, self.OnCloseFrame)
+			
+		#win = self.demoModule.runTest(frame, frame, Log())
+		win = runTest(frame, frame, Log())
+		
+		# a window will be returned if the demo does not create
+		# its own top-level window
+		#if win:
+			# so set the frame to a good size for showing stuff
+		frame.SetSize((640, 480))
+		win.SetFocus()
+		self.window = win
+		ns['win'] = win
+		frect = frame.GetRect()
+
+		#else:
+		# It was probably a dialog or something that is already
+		# gone, so we're done.
+		#	frame.Destroy()
+		#	return True
+		self.SetTopWindow(frame)
+		self.frame = frame
+		#wx.Log_SetActiveTarget(wx.LogStderr())
+		#wx.Log_SetTraceMask(wx.TraceMessages)
+
+		if self.useShell:
+			# Make a PyShell window, and position it below our test window
+			from wx import py
+			shell = py.shell.ShellFrame(None, locals=ns)
+			frect.OffsetXY(0, frect.height)
+			frect.height = 400
+			shell.SetRect(frect)
+			shell.Show()
+
+			# Hook the close event of the test window so that we close
+			# the shell at the same time
+			def CloseShell(evt):
+				if shell:
+					shell.Close()
+				evt.Skip()
+			frame.Bind(wx.EVT_CLOSE, CloseShell)
+					
+		return True
+
+	def OnExitApp(self, evt):
+		self.frame.Close(True)
+		evt.Skip()
+		#self.frame.Close(True)
+
+	def OnCloseFrame(self, evt):
+		if hasattr(self, "window") and hasattr(self.window, "ShutdownDemo"):
+			self.window.ShutdownDemo()
+		evt.Skip()
+
+	def OnWidgetInspector(self, evt):
+		wx.lib.inspection.InspectionTool().Show()
+	                
+ #----------------------------------------------------------------------------
+
+def main(argv):
+	useShell = False
+	name, ext  = os.path.splitext(argv[1])
+	#module = __import__(name)
+
+	#app = RunDemoApp(name, module, useShell)
+	app = RunDemoApp(name, useShell)
+	app.MainLoop()
+
+
+
+if __name__ == "__main__":
+	main(['', os.path.basename(sys.argv[0])] + sys.argv[1:])
