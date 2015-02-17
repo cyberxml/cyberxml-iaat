@@ -5,7 +5,6 @@ import glob
 setup(
 	console=['iaat.py'],
 	data_files=[
-		("icons",glob.glob("icons/*.png")),
 		("docs",glob.glob("docs/*.xml")),
 	],
 )

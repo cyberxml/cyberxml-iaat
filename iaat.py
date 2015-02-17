@@ -7,6 +7,10 @@ import wx.stc as stc
 import io, re,os, wx.html
 from lxml import etree
 import xlwt
+import icons
+#import wx_svg as wxsvg
+from cStringIO import StringIO
+import cairosvg
 
 # ------ explict imports as helpers for py2exe ---------------
 from lxml import _elementpath as _dummy
@@ -677,6 +681,14 @@ class RunDemoApp(wx.App, wx.lib.mixins.inspection.InspectionMixin):
 		self.useShell = useShell
 		wx.App.__init__(self, redirect=False)
 
+	def getBmpFromSvg(self,svgxml, width, height):
+		svgpng = cairosvg.svg2png(svgxml)
+		svgimg = wx.ImageFromStream(StringIO(svgpng),wx.BITMAP_TYPE_PNG)
+		svgimg = svgimg.Scale(width, height, wx.IMAGE_QUALITY_HIGH)
+		svgbmp = wx.BitmapFromImage(svgimg)
+		return svgbmp
+	
+	
 	def OnInit(self):
 		wx.Log.SetActiveTarget(wx.LogStderr())
 
@@ -701,7 +713,8 @@ class RunDemoApp(wx.App, wx.lib.mixins.inspection.InspectionMixin):
 		
 		# Tool Bar - Most functions moved to toolbar
 		toolbar = frame.CreateToolBar()
-		qtool = toolbar.AddLabelTool(wx.ID_ANY, 'Exit', wx.Bitmap('icons/logout_16.png'))
+		#qtool = toolbar.AddLabelTool(wx.ID_ANY, 'Exit', wx.Bitmap('icons/logout_16.png'))
+		qtool = toolbar.AddLabelTool(wx.ID_ANY, 'Exit', self.getBmpFromSvg(icons.logout, 16, 16))
 		toolbar.Realize()
 		self.Bind(wx.EVT_TOOL, self.OnExitApp, qtool)
 
