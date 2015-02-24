@@ -1101,4 +1101,12 @@
 			<ai:CPE>cpe:/o:redhat:enterprise_linux:5::server/zlib</ai:CPE>
 		</Software>
 	</ai>
+	<ai id="SOL10-SVR">
+		<Asset>
+			<ai:CanonicalID>SOL10-SVR</ai:CanonicalID>
+		</Asset>
+		<Software>
+			<ai:CPE>cpe:/o:oracle:solaris:10</ai:CPE>
+		</Software>
+	</ai>
 </ai:assets>

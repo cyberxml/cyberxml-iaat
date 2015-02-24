@@ -12393,7 +12393,12 @@
         <CVEs>
             <CVENumber>CVE-2014-4259</CVENumber>
             <CVENumber>CVE-2014-6480</CVENumber>
-            <CVENumber>CVE-2014-6481</CVENumber>
+            <CVENumber>CVE-2014-6481<CPEs comment="manual test">
+                    <Vendor id="oracle.com">
+                        <CPE>cpe:/o:oracle:solaris:10</CPE>
+                        <CPE>cpe:/o:oracle:solaris:11</CPE>
+                    </Vendor>
+                </CPEs></CVENumber>
             <CVENumber>CVE-2014-6509</CVENumber>
             <CVENumber>CVE-2014-6510</CVENumber>
             <CVENumber>CVE-2014-6518</CVENumber>
