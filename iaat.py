@@ -194,12 +194,20 @@ class MyXmlPanel(wx.Panel):
 		self.validtags = vtags
 		splitter = wx.SplitterWindow(self)
 		leftP = wx.Panel(splitter,-1)
+		leftBox = wx.BoxSizer(wx.VERTICAL)
 		rightP = wx.Panel(splitter,-1)
+		rightBox = wx.BoxSizer(wx.VERTICAL)
 		
-		self.stc = wx.stc.StyledTextCtrl(rightP, size=(500,700))
-		self.vistree = wx.TreeCtrl(leftP, -1, size=(400, 700), style=wx.TR_HAS_BUTTONS|wx.TR_LINES_AT_ROOT|wx.TR_FULL_ROW_HIGHLIGHT|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
-		self.stc.SetMarginType(1, stc.STC_MARGIN_NUMBER)
-		self.stc.SetMarginWidth(1,30)
+		#self.stc = wx.stc.StyledTextCtrl(rightP, size=(500,700))
+		#self.vistree = wx.TreeCtrl(leftP, -1, size=(400, 700), style=wx.TR_HAS_BUTTONS|wx.TR_LINES_AT_ROOT|wx.TR_FULL_ROW_HIGHLIGHT|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
+		self.stc = wx.stc.StyledTextCtrl(rightP, -1)
+		self.vistree = wx.TreeCtrl(leftP, -1, style=wx.TR_HAS_BUTTONS|wx.TR_LINES_AT_ROOT|wx.TR_FULL_ROW_HIGHLIGHT|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
+		#self.stc.SetMarginType(1, stc.STC_MARGIN_NUMBER)
+		#self.stc.SetMarginWidth(1,30)
+		leftBox.Add(self.vistree, 1, wx.EXPAND)
+		leftP.SetSizer(leftBox)
+		rightBox.Add(self.stc, 1, wx.EXPAND)
+		rightP.SetSizer(rightBox)
 		
 		splitter.SplitVertically(leftP, rightP)
 		splitter.SetMinimumPaneSize(200)
@@ -207,7 +215,7 @@ class MyXmlPanel(wx.Panel):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		sizer.Add(splitter, 1, wx.EXPAND)
 		self.SetSizer(sizer)		
-		
+		self.Center()
 		#self.loadfile(xmlfile)
 		self.set_properties(xmlfile) 
 		
@@ -287,7 +295,7 @@ class MyXmlPanel(wx.Panel):
 		self.stc.SetCaretLineVisible(1)
 		self.stc.SetCaretLineBack("yellow")
 		self.stc.SetCaretForeground("black")
-		self.stc.SetCaretWidth(2)  
+		self.stc.SetCaretWidth(2)
 			  
 	def OnSelChanged(self, event): # wxGlade: MyFrame.<event_handler>
 		selectionID=self.vistree.GetSelection()
@@ -436,31 +444,23 @@ class MyXmlPanel(wx.Panel):
 
 	def loadtree(self,roottree):
 		#Populate tree structure with XML children
+	
+		#for node in roottree.iter():	
+		flag_root=True
 		rootn=roottree.getroot()
 		lnum=roottree.getroot().sourceline
-		newroot=rootn
-		print "rootn.tag: "+rootn.tag
-		
-		#def initialize(self,filetype,line_num):
-		filetype="XML Splat File"
-		#filetype=str(rootn.tag)
-		rootnode=self.vistree.AddRoot(filetype) # string parameter & returns an ID
-		self.vistree.SetPyData(rootnode,{"id_num":rootnode,"line_num":lnum} ) 
-		treedic={filetype:rootnode}
-		parentnode_txt=filetype
-		
-		#initialize(self,'XML Flatfile',lnum)
-		offset=lnum-1 # offset beggining of file
-		print "rootn.tag 2: "+rootn.tag
-		print "node.tag 2.0: "+parentnode_txt
-		print "node.tag 2.1: "+str(rootnode)
-		print "node.tag 2.2: "+str(treedic[parentnode_txt])
-		print(self.validtags)
-		
-		#for node in roottree.iter():		
-		for node in roottree.iter():		
+		treedic={}
+		#offset=lnum-1 # offset beggining of file
+		offset=lnum # offset beggining of file
+		newroot=self.vistree.AddRoot(rootn.tag)				
+		self.vistree.SetPyData(newroot,{"id_num":newroot,"line_num":lnum} ) 
+		for node in roottree.iter():
+			if flag_root:
+				parentnode_txt=node.tag
+				# don't come back here
+				flag_root=False		
 			#print "node.tag 1: "+node.tag			
-			if node.tag in self.validtags:
+			elif node.tag in self.validtags:
 								
 				# STANDARD FILE PROCESS
 				#print "node.tag 2a: "+node.tag
@@ -475,6 +475,7 @@ class MyXmlPanel(wx.Panel):
 					except:
 						print("flailing")
 				
+				#print parentnodeID
 				#print "lnum: "+lnum
 				lnum=node.sourceline-offset
 				#print "lnum: "+lnum
@@ -527,23 +528,27 @@ class MyXmlPanel(wx.Panel):
 							self.vistree.SetItemTextColour(newroot, 'blue')										
 
 
-				except KeyError:# name= ' ' IAVM.	
+				except KeyError, ke:# name= ' ' IAVM.	
 					# setting IAVM numbers means resetting parent label
+					#print node.tag
+					#print ke
 					try:
+						# This works for the S element in IAVM-to-CPE and only S element
 						iavm_name = node.attrib['IAVM']
 						self.vistree.SetItemText(parentnodeID, iavm_name)
 						newroot=self.vistree.AppendItem(parentnodeID, node.tag)
 						self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum})
-					except:
+					except Exception, ex:
+						# previous not previous S element, assume IAVM element
+						#print ex
 						if node.text==None or node.text.isspace():
-							data=node.tag # 
-							#data=node.text
+							data=node.tag
 							#print("line 552: " + data)
+							#print parentnodeID
 							newroot=self.vistree.AppendItem(parentnodeID, data)
 							self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum})			
 							#self.vistree.SetItemTextColour(newroot, 'cyan')
 						else:
-							#data=node.tag # 
 							data=node.text
 							newroot=self.vistree.AppendItem(parentnodeID,data)
 							self.vistree.SetPyData(newroot, {"id_num":node,"line_num":lnum})			
@@ -554,13 +559,14 @@ class MyXmlPanel(wx.Panel):
 			#print "rootn.tag 3: "+rootn.tag
 			treedic[node]=newroot # append dictionary
 		#StGernodeID,cookie=self.vistree.GetFirstChild(rootn) # Use StGermainData as parent node	 
-		
-	#self.vistree.ExpandAll() # Default expand all of tree on load
+		self.vistree.Expand(self.vistree.GetRootItem())
+		#self.vistree.ExpandAll() # Default expand all of tree on load
 # END ------ loadtree -----------		
 
 class dashGrid(wx.grid.Grid):
 	def __init__(self, parent):
-		wx.grid.Grid.__init__(self,parent,size = (1500,1000))
+		#wx.grid.Grid.__init__(self,parent,size = (1500,1000))
+		wx.grid.Grid.__init__(self,parent)
 		self.parent = parent
 		self.SetDefaultCellOverflow(False)
 		self.EnableEditing(False)
@@ -576,6 +582,7 @@ class dashGrid(wx.grid.Grid):
 	
 	def updateIavmLabels(self,iavms):
 		print('updateIavmLabels')
+		self.refreshGridSize(iavms,True)
 		for i in range(self.GetNumberRows()):
 			self.SetRowLabelValue(i,"")
 		for i in range(len(iavms)):
@@ -583,6 +590,7 @@ class dashGrid(wx.grid.Grid):
 	
 	def updateAssetLabels(self,assets):
 		print('updateAssetLabels')
+		self.refreshGridSize(assets,False)
 		for i in range(self.GetNumberCols()):
 			self.SetColLabelValue(i,"")
 		for i in range(len(assets)):
@@ -591,7 +599,11 @@ class dashGrid(wx.grid.Grid):
 	def updateDashboard(self,mycells):
 		self.ClearGrid()
 		for mc in mycells:
-			self.SetCellValue(mc[0], mc[1], "X")
+			try:
+				self.SetCellValue(mc[0], mc[1], "X")
+			except Exception, e:
+				print e
+				print mc
 
 	def exportDashboard(self,filename):
 		book = xlwt.Workbook()
@@ -606,6 +618,32 @@ class dashGrid(wx.grid.Grid):
 				dash.write(0,c+1,self.GetColLabelValue(c))		
 		book.save(filename)
 		print("exportDashboard: "+filename)
+
+	# http://stackoverflow.com/questions/17454775/changing-size-of-grid-when-grid-data-is-changed
+	def refreshGridSize(self,data,row_flag):
+		print '\n\n\n------------refresh grid'
+		#- Clear the grid:
+		self.ClearGrid()
+		if row_flag:
+			current, new = (self.GetNumberRows(), len(data))
+			if new < current:
+				#- Delete rows:
+				self.DeleteRows(0, current-new, True)
+			
+			if new > current:
+				#- append rows:
+				self.AppendRows(new-current)
+		else:
+			current, new = (self.GetNumberCols(), len(data))
+			if new < current:
+				#- Delete rows:
+				self.DeleteCols(0, current-new, True)
+			
+			if new > current:
+				#- append rows:
+				self.AppendCols(new-current)
+		self.AutoSizeColumns(setAsMin=True)	
+
 
 class poamGrid(wx.grid.Grid):
 	def __init__(self, parent):
