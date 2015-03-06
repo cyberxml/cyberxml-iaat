@@ -1,6 +1,6 @@
 
-import	sys
-import	wx
+import sys
+import wx
 import wx.aui
 import wx.grid
 import wx.stc as stc
@@ -11,6 +11,8 @@ import icons
 #import wx_svg as wxsvg
 from cStringIO import StringIO
 import cairosvg
+from cpe.cpe2_2 import CPE2_2
+from cpe.cpeset2_2 import CPESet2_2
 
 # ------ explict imports as helpers for py2exe ---------------
 from lxml import _elementpath as _dummy
@@ -140,19 +142,31 @@ class TestNB(wx.Notebook):
 		assets=swcat_root.findall('ai')
 		
 		iavass=[] # holds row, col pairs of matches
+		asscpes=[]
+		for j in range(len(assets)):
+			asscpes.append(assets[j].findall('./Software/CPE'))
 		for i in range(len(iavms)):
 			iavcpes=iavms[i].findall(".//CPE")
 			iavcpetxt=[]
 			for iav in iavcpes:
 				iavcpetxt.append(iav.text)
 			for j in range(len(assets)):
-				asscpes=assets[j].findall('./Software/CPE')
-				asscpetxt=[]
-				for ass in asscpes:
-					asscpetxt.append(ass.text)
-				for c in iavcpetxt:
-					if c in asscpetxt:
-						iavass.append([i,j])
+				#asscpetxt=[]
+				asscpe=asscpes[j]
+				flag=True
+				#kat = CPESet2_2()
+				for ass in asscpe:
+					#asscpetxt.append(ass.text)
+					#kat.append(CPE2_2(ass.text))
+					# too slow!
+					for c in iavcpetxt:
+						if c in ass.text or ass.text in c:
+							#if kat.name_match(CPE2_2(c)):
+							iavass.append([i,j])
+							flag=True
+							break
+					if flag:
+						break
 
 		self.dash.updateDashboard(iavass)
 
@@ -603,8 +617,8 @@ class dashGrid(wx.grid.Grid):
 				self.SetCellValue(mc[0], mc[1], "X")
 			except Exception, e:
 				print e
-				print mc
-
+				print("updateDashboard failed to set cell: "+str(mc[0])+','+str(mc[1]))
+	
 	def exportDashboard(self,filename):
 		book = xlwt.Workbook()
 		dash = book.add_sheet('IAVM Dashboard')
